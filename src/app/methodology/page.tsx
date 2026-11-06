@@ -100,11 +100,34 @@ export default function MethodologyPage() {
           Rating-velocity cross-check assumes {(RATINGS_PER_DOWNLOAD * 100).toFixed(1)}% of downloaders leave a rating.
         </p>
 
-        <h2>6 · Known limits</h2>
+        <h2>6 · Keyword research</h2>
+        <p>
+          Search positions come from Apple’s public iTunes Search API (top 50 kept per keyword per day). It closely tracks, but is not
+          identical to, results in the App Store app.
+        </p>
+        <ul>
+          <li>
+            <strong>Popularity</strong> (0–100): how few letters are typed before App Store autocomplete suggests the keyword, and how high it
+            sits in that list. When Apple only suggests longer phrases starting with it, those count at 90%. Apple publishes no search
+            volumes, so this ranks keywords against each other.
+          </li>
+          <li>
+            <strong>Difficulty</strong> (0–100): the top 10 results’ rating volume (55%), the share with every keyword word in their title
+            (25%) and the share earning enough to chart (20%), minus up to 10 points when apps launched in the last year are ranking.
+          </li>
+          <li>
+            <strong>Opportunity</strong> (0–100): √(popularity × (100 − difficulty)), scaled from 0.6 to 1.0 by the top 10’s combined
+            estimated revenue (≥ $10M a month gives 1.0). Best picks are the highest-opportunity keywords with popularity ≥ 20, one per
+            close variant.
+          </li>
+        </ul>
+
+        <h2>7 · Known limits</h2>
         <ul>
           <li>Apps below every chart (most apps) get no estimate. Totals cover charting apps only.</li>
           <li>The overall top-free chart can exclude some categories; their download mapping borrows the grossing mapping, which assumes a category is about as strong in downloads as in revenue.</li>
           <li>iPhone charts only; iPad and Google Play are not included.</li>
+          <li>Keyword popularity is relative; it cannot be converted to a number of searches without Apple Search Ads data.</li>
           <li>Worldwide calibration figures are compared with the sum of tracked countries only, which biases the scale upward slightly.</li>
         </ul>
       </div>

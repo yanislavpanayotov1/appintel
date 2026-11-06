@@ -101,6 +101,45 @@ CREATE TABLE IF NOT EXISTS model_params (
   PRIMARY KEY (scope, chart)
 );
 
+CREATE TABLE IF NOT EXISTS keywords (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  term        TEXT NOT NULL,                  -- normalised: lower-case, single spaces
+  country     TEXT NOT NULL,
+  source      TEXT NOT NULL,                  -- seed | suggest | manual
+  parent      TEXT,                           -- seed it was suggested from
+  added_at    TEXT NOT NULL,
+  active      INTEGER NOT NULL DEFAULT 1,
+  UNIQUE (term, country)
+);
+
+CREATE TABLE IF NOT EXISTS keyword_snapshots (
+  date             TEXT NOT NULL,
+  keyword_id       INTEGER NOT NULL,
+  popularity       REAL NOT NULL,             -- 0-100, from autocomplete
+  hint_prefix_len  INTEGER,                   -- shortest prefix that suggests the term
+  hint_position    INTEGER,                   -- its position in that suggestion list
+  hint_exact       INTEGER,                   -- 1 = the term itself was suggested, 0 = a longer phrase starting with it
+  results          INTEGER NOT NULL,          -- apps returned by search (max 200)
+  difficulty       REAL NOT NULL,             -- 0-100
+  rating_strength  REAL,
+  title_match      REAL,                      -- share of top 10 with every keyword word in the title
+  charting_share   REAL,                      -- share of top 10 with a revenue estimate
+  fresh_share      REAL,                      -- share of top 10 released in the last 365 days
+  niche_revenue    REAL,                      -- est. monthly revenue of top 10, USD
+  top5_median_rev  REAL,                      -- median est. monthly revenue of top 5, USD
+  opportunity      REAL NOT NULL,             -- 0-100
+  PRIMARY KEY (date, keyword_id)
+);
+
+CREATE TABLE IF NOT EXISTS keyword_ranks (
+  date        TEXT NOT NULL,
+  keyword_id  INTEGER NOT NULL,
+  rank        INTEGER NOT NULL,
+  app_id      INTEGER NOT NULL,
+  PRIMARY KEY (date, keyword_id, rank)
+);
+CREATE INDEX IF NOT EXISTS idx_kwranks_app ON keyword_ranks(app_id, date);
+
 CREATE TABLE IF NOT EXISTS scrape_runs (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
   date           TEXT NOT NULL,

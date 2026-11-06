@@ -214,3 +214,28 @@ table.data th.num { text-align: right; }
 @media (max-width: 640px) { .app-head { padding: 28px 0 16px; } .app-head img { width: 64px; height: 64px; border-radius: 14px; } .app-head h1 { font-size: 32px; } }
 .hero-figure { font-size: 56px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; }
 @media (max-width: 640px) { .hero-figure { font-size: 44px; } }
+
+/* Keyword research */
+.meter { display: inline-flex; align-items: center; gap: 8px; min-width: 96px; }
+.meter-num { width: 24px; text-align: right; font-size: 13px; }
+.meter-track { flex: 1; height: 6px; border-radius: 9999px; background: var(--mist); min-width: 48px; overflow: hidden; }
+.meter-fill { display: block; height: 100%; border-radius: 9999px; background: var(--chart); }
+.meter-fill.inv { background: var(--ink-2); }
+.tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.tag { font-size: 11px; padding: 1px 8px; border-radius: 9999px; background: var(--mist); color: var(--ink-2); white-space: nowrap; }
+.tag.quick-win, .tag.new-apps-winning { background: var(--peach); color: var(--sienna); }
+.tag.crowded { background: transparent; border: 1px solid var(--line); color: var(--slate); }
+.picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 12px; }
+.pick { display: grid; grid-template-columns: 36px 1fr auto; gap: 4px 12px; align-items: start; padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--radius-small); background: var(--paper); }
+.pick:hover { text-decoration: none; border-color: var(--ink-2); }
+.pick .n { color: var(--ash); font-size: 13px; padding-top: 3px; }
+.pick .kw { font-family: var(--font-serif), Georgia, serif; font-size: 21px; line-height: 1.2; letter-spacing: -0.01em; }
+.pick .score { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; text-align: right; }
+.pick .score small { display: block; font-size: 11px; font-weight: 400; color: var(--slate); letter-spacing: 0; }
+.pick .why { grid-column: 2 / -1; color: var(--slate); font-size: 13px; line-height: 1.45; }
+.pick .facts { grid-column: 2 / -1; display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); }
+.pick .facts b { font-weight: 600; }
+.breakdown { display: grid; gap: 10px; font-size: 14px; }
+.breakdown .row { display: grid; grid-template-columns: minmax(140px, 220px) 1fr; gap: 12px; align-items: center; }
+@media (max-width: 640px) { .breakdown .row { grid-template-columns: 1fr; gap: 4px; } }
+.check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-2); }

@@ -37,7 +37,9 @@ function niceTicks(min: number, max: number, n = 4): number[] {
   const mag = Math.pow(10, Math.floor(Math.log10(raw)));
   const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? raw;
   const out: number[] = [];
-  for (let v = Math.ceil(min / step) * step; v <= max + 1e-9; v += step) out.push(Number(v.toPrecision(12)));
+  // End on the first tick at or above max so the data never runs past the top gridline.
+  const end = Math.ceil(max / step - 1e-9) * step;
+  for (let v = Math.ceil(min / step) * step; v <= end + 1e-9; v += step) out.push(Number(v.toPrecision(12)));
   return out;
 }
 

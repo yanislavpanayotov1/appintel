@@ -7,6 +7,7 @@ Daily scraper and web app that estimates revenue and downloads for iOS apps from
 ```bash
 npm install
 npm run scrape        # collect today's charts, app details, and build estimates (~35 min for 7 countries; ~6,300 apps per country, paced to Apple’s lookup limit)
+npm run keywords      # keyword research: autocomplete popularity, search ranks, difficulty, best picks (~25 min for 400 US keywords)
 npm run build && npm start   # or: npm run dev
 ```
 
@@ -20,7 +21,10 @@ Open http://localhost:3000.
 | Price, category, rating count, average rating | Apple iTunes Lookup API (100 ids per call, paced at 1 call per 3.2 s) | Free |
 | Same details, alternative source | Apify actor `automation-lab/apple-app-store-scraper` (optional) | Pay per result |
 
-Roughly 75 chart feeds and 3,000–4,000 unique apps per country per day.
+| Search ranks for tracked keywords (top 50 of up to 200 results) | Apple iTunes Search API (1 call per 3.2 s) | Free |
+| Keyword popularity signal | App Store autocomplete (search hints) | Free |
+
+Roughly 75 chart feeds and 6,000+ unique apps per country per day.
 
 ## The revenue model
 
@@ -31,6 +35,27 @@ Roughly 75 chart feeds and 3,000–4,000 unique apps per country per day.
 5. **Calibration.** Known revenue figures fit `A` and `b` (see below). Until then the model runs on **priors** in `src/lib/config.ts`. Those priors are assumptions, not measured values, and the UI labels these estimates "Uncalibrated".
 
 Details and every assumption are listed on `/methodology`.
+
+## Keyword research (ASO)
+
+`/keywords` lists every tracked keyword with three scores, plus a **Best picks** list.
+
+| Score | Built from |
+|---|---|
+| **Popularity** (0–100) | How few letters you type before App Store autocomplete suggests the keyword, and its position in the list. If Apple only suggests longer phrases that start with it ("budget" → "budget app"), those count at 90%. Apple publishes no search volumes, so this ranks keywords against each other; it is not a search count. |
+| **Difficulty** (0–100) | The top 10 search results: rating volume (55%), share with every keyword word in the title (25%), share earning enough to chart (20%), minus up to 10 when apps launched in the last year are ranking. |
+| **Opportunity** (0–100) | √(popularity × (100 − difficulty)), scaled 0.6–1.0 by the top 10's combined estimated revenue (≥ $10M/month → 1.0). |
+
+Each keyword page shows who ranks (top 50, with rating counts, release dates, revenue estimates, keyword-in-title, and rank changes between runs), the score breakdown, popularity over time and related keywords. Each app page lists its search ranks for tracked keywords.
+
+```bash
+npm run keywords                                   # default seeds (src/lib/aso/seeds.ts) + their autocomplete suggestions, US
+npm run keywords -- --seeds "sleep sounds,white noise"
+npm run keywords -- --countries us,gb --max 200
+npm run keywords -- --no-expand                    # rescore tracked keywords only
+```
+
+You can also research keywords from the `/keywords` page (scored immediately). Run `npm run scrape` first each day so "Top 10 revenue" uses current estimates. Search ranks come from Apple's public Search API, which closely tracks, but is not identical to, results in the App Store app.
 
 ## Calibrating (makes the dollar amounts meaningful)
 
@@ -59,7 +84,7 @@ The same actions are available on `/calibration` in the web app.
 Apple updates the charts continuously, so run the scrape once a day:
 
 ```cron
-15 6 * * *  cd /path/to/appintel && npm run scrape >> data/scrape.log 2>&1
+15 6 * * *  cd /path/to/appintel && npm run scrape >> data/scrape.log 2>&1 && npm run keywords -- --no-expand >> data/keywords.log 2>&1
 ```
 
 Re-running on the same day overwrites that day's data, so retries are safe.
@@ -94,8 +119,10 @@ src/lib/model/rankmap.ts       category → overall rank mapping
 src/lib/model/estimate.ts      per-day estimates (revenue, downloads, confidence, range)
 src/lib/model/calibrate.ts     curve fitting against known revenue
 src/lib/trustmrr.ts            TrustMRR profile import
+src/lib/aso/                   keyword research: Apple search/autocomplete client, scoring, analysis, seeds
+scraper/keywords.ts            keyword research CLI
 src/lib/queries.ts             aggregations for the UI (run-rate, growth, categories)
-src/app/                       Next.js pages: /, /app/[id], /categories, /calibration, /methodology, /api/export
+src/app/                       Next.js pages: /, /app/[id], /categories, /keywords, /keywords/[id], /calibration, /methodology, /api/export
 data/appintel.db               SQLite database (created on first run)
 ```
 

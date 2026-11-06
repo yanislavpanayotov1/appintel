@@ -13,7 +13,8 @@
     "calibrate:trustmrr": "tsx scraper/trustmrr-import.ts",
     "calibrate:fit": "tsx scraper/calibrate-fit.ts",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "tsx --test tests/*.test.ts",
+    "keywords": "tsx scraper/keywords.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

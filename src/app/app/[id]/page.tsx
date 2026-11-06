@@ -5,6 +5,8 @@ import { COUNTRY_NAMES, GENRES, METHOD_LABEL, OVERALL, APPLE_COMMISSION, RATINGS
 import { money, count, rankLabel, shortDate } from '../../../lib/format';
 import { AppIcon, BarList, CalibratedBadge, ConfidenceBadge, Delta, StatTile } from '../../../components/ui';
 import { LineChart } from '../../../components/LineChart';
+import { Meter } from '../../../components/Meter';
+import { getAppKeywords } from '../../../lib/aso/queries';
 
 type Params = Promise<{ id: string }>;
 type SP = Promise<Record<string, string | string[] | undefined>>;
@@ -28,6 +30,7 @@ export default async function AppPage({ params, searchParams }: { params: Params
   const mapFor = (country: string, chart: string, genreId: number) =>
     d.latestMaps.find((m) => m.country === country && m.chart === chart && m.genreId === genreId);
   const usTop = d.byCountry.find((c) => c.country === topCountry);
+  const keywords = getAppKeywords(appId);
   const genreName = (app.genre_id !== null && GENRES[app.genre_id]) || app.genre_name;
 
   return (
@@ -205,6 +208,48 @@ export default async function AppPage({ params, searchParams }: { params: Params
                     </tr>
                   );
                 })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <h2 className="section serif">Keyword rankings</h2>
+      {keywords.length === 0 ? (
+        <p className="muted">
+          Not in the top 50 search results for any tracked keyword. <a href="/keywords" style={{ textDecoration: 'underline' }}>Research keywords →</a>
+        </p>
+      ) : (
+        <div className="table-wrap">
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Keyword</th>
+                <th>Country</th>
+                <th className="num">Search rank</th>
+                <th>Popularity</th>
+                <th>Difficulty</th>
+                <th className="num">Opportunity</th>
+              </tr>
+            </thead>
+            <tbody>
+              {keywords.map((k) => {
+                const moved = k.previousRank === null ? null : k.previousRank - k.rank;
+                return (
+                  <tr key={`${k.keywordId}`}>
+                    <td><a href={`/keywords/${k.keywordId}`}>{k.term}</a></td>
+                    <td>{k.country.toUpperCase()}</td>
+                    <td className="num">
+                      #{k.rank}
+                      {moved !== null && moved !== 0 && (
+                        <span className={`range delta ${moved > 0 ? 'up' : 'down'}`}>{moved > 0 ? '↑' : '↓'}{Math.abs(moved)}</span>
+                      )}
+                    </td>
+                    <td><Meter value={k.popularity} label="Popularity" /></td>
+                    <td><Meter value={k.difficulty} label="Difficulty" invert /></td>
+                    <td className="num">{Math.round(k.opportunity)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
