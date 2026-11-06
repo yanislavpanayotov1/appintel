@@ -93,3 +93,15 @@ test('addKeyword normalises, dedupes and validates', () => {
   assert.throws(() => addKeyword(db, 'x', 'zz', 'manual'), /not supported/);
   assert.throws(() => addKeyword(db, '   ', 'us', 'manual'), /empty/);
 });
+
+test('brand detection: punctuation, rare app names, generic titles', async () => {
+  const { isBrandedTerm, titleName } = await import('../src/lib/aso/score');
+  const counts: Record<string, number> = { for: 900, inaturalist: 3, habit: 202, tracker: 1032, iphone: 400, iphones: 2, fonts: 112, plant: 163, identifier: 233 };
+  const df = (w: string) => counts[w] ?? 0;
+  assert.equal(titleName('PDF Expert: Editor & Reader'), 'pdf expert');
+  assert.ok(isBrandedTerm('huckleberry: baby tracker', [], df)); // store-title punctuation
+  assert.ok(isBrandedTerm('inaturalist plant identifier', ['iNaturalist', 'PictureThis'], df));
+  assert.ok(!isBrandedTerm('habit tracker', ['Habit Tracker', 'Habit Tracker - HabitKit'], df)); // generic title
+  assert.ok(!isBrandedTerm('fonts for iphones free', ['Fonts for iPhones'], df)); // plural of a common word
+  assert.ok(!isBrandedTerm('plant identifier', ['iNaturalist'], df)); // brand ranks, but the term does not name it
+});

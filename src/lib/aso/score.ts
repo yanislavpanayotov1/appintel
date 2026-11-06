@@ -129,7 +129,45 @@ export function opportunityScore(popularity: number, difficulty: number, nicheRe
   return Math.round(v * 10) / 10;
 }
 
-export type Tag = 'quick-win' | 'high-demand' | 'money-niche' | 'crowded' | 'new-apps-winning';
+/* -------------------------------------------------------------------------- */
+/* Brand detection                                                            */
+/* -------------------------------------------------------------------------- */
+
+const TITLE_PUNCTUATION = /\s[-–—•|]\s|[:：•™®]|[–—]/;
+
+/** The name part of a store title: "PDF Expert: Editor & Reader" → "pdf expert". */
+export function titleName(title: string): string {
+  return normaliseTerm(title.split(/\s[-–—|•]\s|[:：|•]/)[0] ?? title);
+}
+
+/** Brand words are rare: a word in at most this many app names counts as a name, not a description. */
+export const BRAND_WORD_MAX_APPS = 5;
+
+/**
+ * True when the keyword is someone looking for one specific app rather than a
+ * kind of app. Autocomplete suggests many of these ("huckleberry: baby tracker").
+ * - it contains store-title punctuation (people rarely type ":" or " - "), or
+ * - it starts with the name of a top-3 result, and that name has a word used by
+ *   at most BRAND_WORD_MAX_APPS app names in the whole database ("inaturalist",
+ *   "capcut"), unlike generic names ("Habit Tracker": "habit" is in 200+ names).
+ * @param appsWithWord how many tracked app names contain a word
+ */
+export function isBrandedTerm(term: string, resultTitles: string[], appsWithWord: (word: string) => number): boolean {
+  const t = normaliseTerm(term);
+  if (TITLE_PUNCTUATION.test(t)) return true;
+  const termTokens = tokens(t);
+  for (const title of resultTitles.slice(0, 3)) {
+    const name = tokens(titleName(title));
+    if (!name.length || name.length > termTokens.length) continue;
+    if (!name.every((w, i) => termTokens[i] === w)) continue;
+    // Count singular and plural together: "iphones" is rare, "iphone" is not.
+    const uses = (w: string) => Math.max(appsWithWord(w), appsWithWord(w.replace(/s$/, '')), appsWithWord(w + 's'));
+    if (name.some((w) => w.length >= 2 && uses(w) <= BRAND_WORD_MAX_APPS)) return true;
+  }
+  return false;
+}
+
+export type Tag = 'quick-win' | 'high-demand' | 'money-niche' | 'crowded' | 'new-apps-winning' | 'brand';
 
 export const TAG_LABEL: Record<Tag, string> = {
   'quick-win': 'Quick win',
@@ -137,10 +175,14 @@ export const TAG_LABEL: Record<Tag, string> = {
   'money-niche': 'Money niche',
   crowded: 'Crowded',
   'new-apps-winning': 'New apps ranking',
+  brand: 'App name',
 };
 
-export function tagsFor(s: { popularity: number; difficulty: number; niche_revenue: number | null; fresh_share: number | null }): Tag[] {
-  const t: Tag[] = [];
+export function tagsFor(
+  s: { popularity: number; difficulty: number; niche_revenue: number | null; fresh_share: number | null },
+  branded = false,
+): Tag[] {
+  const t: Tag[] = branded ? ['brand'] : [];
   if (s.popularity >= 30 && s.difficulty < 40) t.push('quick-win');
   if (s.popularity >= 60) t.push('high-demand');
   if ((s.niche_revenue ?? 0) >= 1_000_000) t.push('money-niche');

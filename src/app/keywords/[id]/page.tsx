@@ -16,9 +16,9 @@ export default async function KeywordPage({ params, searchParams }: { params: Pa
   const sp = await searchParams;
   const d = getKeyword(Number(id));
   if (!d) notFound();
-  const { keyword, latest, history, results, related } = d;
+  const { keyword, latest, history, results, related, branded } = d;
   const top10 = results.slice(0, TOP_N);
-  const tags = latest ? tagsFor(latest) : [];
+  const tags = latest ? tagsFor(latest, branded) : [];
   const typed = latest?.hint_prefix_len ? [...keyword.term].slice(0, latest.hint_prefix_len).join('') : null;
   const top5 = results.slice(0, 5);
   const earningTop5 = top5.filter((r) => (r.monthlyRevenue ?? 0) > 0).length;
@@ -37,6 +37,11 @@ export default async function KeywordPage({ params, searchParams }: { params: Pa
       </section>
 
       {typeof sp.msg === 'string' && <div className="notice ok" role="status" style={{ marginBottom: 16 }}>{sp.msg}</div>}
+      {branded && (
+        <div className="notice ok" style={{ marginBottom: 16 }}>
+          This looks like the name of a specific app, so people searching it mostly want that app. It is left out of Best picks.
+        </div>
+      )}
 
       {!latest ? (
         <div className="card mist">

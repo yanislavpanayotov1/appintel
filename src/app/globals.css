@@ -224,7 +224,7 @@ table.data th.num { text-align: right; }
 .tags { display: flex; gap: 4px; flex-wrap: wrap; }
 .tag { font-size: 11px; padding: 1px 8px; border-radius: 9999px; background: var(--mist); color: var(--ink-2); white-space: nowrap; }
 .tag.quick-win, .tag.new-apps-winning { background: var(--peach); color: var(--sienna); }
-.tag.crowded { background: transparent; border: 1px solid var(--line); color: var(--slate); }
+.tag.crowded, .tag.brand { background: transparent; border: 1px solid var(--line); color: var(--slate); }
 .picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 12px; }
 .pick { display: grid; grid-template-columns: 36px 1fr auto; gap: 4px 12px; align-items: start; padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--radius-small); background: var(--paper); }
 .pick:hover { text-decoration: none; border-color: var(--ink-2); }

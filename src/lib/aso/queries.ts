@@ -1,7 +1,7 @@
 import 'server-only';
 import { getDb } from '../db';
 import { addDays } from '../model/math';
-import { tagsFor, titleMatches, type Tag } from './score';
+import { isBrandedTerm, tagsFor, titleMatches, tokens, type Tag } from './score';
 
 export interface KeywordListRow {
   id: number;
@@ -23,6 +23,7 @@ export interface KeywordListRow {
   hintExact: boolean | null;
   popularityChange: number | null; // vs a snapshot ≥ 7 days earlier
   topApp: { id: number; name: string; iconUrl: string | null } | null;
+  branded: boolean;
   tags: Tag[];
 }
 
@@ -58,6 +59,19 @@ interface SnapRow {
   prev_pop: number | null;
 }
 
+/** How many tracked app names contain each word; rebuilt at most every 10 minutes. */
+let wordCounts: { at: number; map: Map<string, number> } | null = null;
+export function appsWithWord(): (word: string) => number {
+  if (!wordCounts || Date.now() - wordCounts.at > 600_000) {
+    const map = new Map<string, number>();
+    for (const r of getDb().prepare('SELECT name FROM apps').all() as { name: string }[])
+      for (const w of new Set(tokens(r.name))) map.set(w, (map.get(w) ?? 0) + 1);
+    wordCounts = { at: Date.now(), map };
+  }
+  const m = wordCounts.map;
+  return (w) => m.get(w) ?? 0;
+}
+
 export function keywordCountries(): string[] {
   return (getDb().prepare('SELECT DISTINCT country FROM keywords ORDER BY country').all() as { country: string }[]).map((r) => r.country);
 }
@@ -79,18 +93,21 @@ export function getKeywordList(f: KeywordFilter): KeywordListRow[] {
     )
     .all(f.country) as SnapRow[];
 
-  const topStmt = db.prepare(
+  const titlesStmt = db.prepare(
     `SELECT a.id, a.name, a.icon_url iconUrl FROM keyword_ranks r JOIN apps a ON a.id = r.app_id
-     WHERE r.keyword_id = ? AND r.date = ? AND r.rank = 1`,
+     WHERE r.keyword_id = ? AND r.date = ? ORDER BY r.rank`,
   );
   const q = f.q.trim().toLowerCase();
+  const df = appsWithWord();
   const out: KeywordListRow[] = [];
   for (const r of rows) {
     if (q && !r.term.includes(q)) continue;
     if (r.popularity < f.minPopularity || r.difficulty > f.maxDifficulty) continue;
-    const tags = tagsFor(r);
+    const ranked = titlesStmt.all(r.id, r.date) as { id: number; name: string; iconUrl: string | null }[];
+    const branded = isBrandedTerm(r.term, ranked.map((x) => x.name), df);
+    const tags = tagsFor(r, branded);
     if (f.tag !== 'all' && !tags.includes(f.tag)) continue;
-    const top = topStmt.get(r.id, r.date) as { id: number; name: string; iconUrl: string | null } | undefined;
+    const top = ranked[0];
     out.push({
       id: r.id,
       term: r.term,
@@ -111,6 +128,7 @@ export function getKeywordList(f: KeywordFilter): KeywordListRow[] {
       hintExact: r.hint_exact === null ? null : r.hint_exact === 1,
       popularityChange: r.prev_pop === null ? null : r.popularity - r.prev_pop,
       topApp: top ?? null,
+      branded,
       tags,
     });
   }
@@ -124,13 +142,21 @@ export function getKeywordList(f: KeywordFilter): KeywordListRow[] {
   return out.sort((a, b) => key[f.sort](b) - key[f.sort](a) || b.opportunity - a.opportunity);
 }
 
-/** Best picks: highest opportunity among keywords with real demand, one per close variant. */
-export function bestPicks(rows: KeywordListRow[], n = 10): KeywordListRow[] {
+/**
+ * Best picks: highest opportunity among non-brand keywords with real demand,
+ * one per niche (keywords suggested from the same seed share a niche), so the
+ * list spans different app ideas instead of ten variants of one.
+ */
+export function bestPicks(rows: KeywordListRow[], n = 12): KeywordListRow[] {
   const picked: KeywordListRow[] = [];
+  const niches = new Set<string>();
   for (const r of [...rows].sort((a, b) => b.opportunity - a.opportunity)) {
-    if (r.popularity < 20 || r.results < 10) continue;
-    // Skip near-duplicates ("habit tracker" vs "habit tracker app").
+    if (r.branded || r.popularity < 20 || r.results < 10) continue;
+    const niche = r.parent ?? r.term;
+    if (niches.has(niche)) continue;
+    // Also skip near-duplicates across niches ("habit tracker" vs "habit tracker app").
     if (picked.some((p) => r.term.startsWith(p.term + ' ') || p.term.startsWith(r.term + ' '))) continue;
+    niches.add(niche);
     picked.push(r);
     if (picked.length === n) break;
   }
@@ -149,7 +175,9 @@ export function pickReason(r: KeywordListRow): string {
   }
   if (r.difficulty < 40) parts.push('top results have few ratings');
   else if (r.difficulty < 60) parts.push('moderate competition');
-  if (r.titleMatch <= 0.4) parts.push(`only ${Math.round(r.titleMatch * 10)} of the top 10 target it in their title`);
+  const inTitle = Math.round(r.titleMatch * 10);
+  if (inTitle === 0) parts.push('none of the top 10 use it in their title');
+  else if (inTitle <= 4) parts.push(`only ${inTitle} of the top 10 use it in their title`);
   if (r.freshShare >= 0.3) parts.push(`${Math.round(r.freshShare * 10)} of the top 10 launched this year`);
   return parts.join(' · ');
 }
@@ -175,6 +203,7 @@ export interface KeywordDetail {
     titleMatch: boolean;
   }[];
   related: { id: number; term: string; opportunity: number; popularity: number }[];
+  branded: boolean;
 }
 
 export function getKeyword(id: number): KeywordDetail | null {
@@ -234,7 +263,7 @@ export function getKeyword(id: number): KeywordDetail | null {
        ORDER BY s.opportunity DESC LIMIT 12`,
     )
     .all(keyword.country, id, root, root) as KeywordDetail['related'];
-  return { keyword, latest: latest ?? null, history, results, related };
+  return { keyword, latest: latest ?? null, history, results, related, branded: isBrandedTerm(keyword.term, results.map((r) => r.name), appsWithWord()) };
 }
 
 export interface AppKeywordRow {

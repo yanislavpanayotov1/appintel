@@ -117,8 +117,8 @@ export default function MethodologyPage() {
           </li>
           <li>
             <strong>Opportunity</strong> (0–100): √(popularity × (100 − difficulty)), scaled from 0.6 to 1.0 by the top 10’s combined
-            estimated revenue (≥ $10M a month gives 1.0). Best picks are the highest-opportunity keywords with popularity ≥ 20, one per
-            close variant.
+            estimated revenue (≥ $10M a month gives 1.0). Best picks are the highest-opportunity keywords with popularity ≥ 20, leaving out
+            app names, one per niche (keywords suggested from the same seed).
           </li>
         </ul>
 

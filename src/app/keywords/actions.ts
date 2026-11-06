@@ -33,8 +33,8 @@ export async function addKeywordAction(form: FormData) {
     }
     target =
       terms.length === 1
-        ? `/keywords/${firstId}${suggestions ? `?msg=${encodeURIComponent(`Added ${suggestions} suggestions; they are scored on the next keyword run.`)}` : ''}`
-        : `/keywords?country=${country}&msg=${encodeURIComponent(`Scored ${terms.length} keywords${suggestions ? ` and queued ${suggestions} suggestions` : ''}.`)}`;
+        ? `/keywords/${firstId}${suggestions ? `?msg=${encodeURIComponent(`Added ${suggestions} suggestion${suggestions === 1 ? '' : 's'}; scored on the next keyword run.`)}` : ''}`
+        : `/keywords?country=${country}&msg=${encodeURIComponent(`Scored ${terms.length} keywords${suggestions ? ` and queued ${suggestions} suggestion${suggestions === 1 ? '' : 's'}` : ''}.`)}`;
   } catch (e) {
     target = `/keywords?country=${country}&err=${encodeURIComponent((e as Error).message)}`;
   }
